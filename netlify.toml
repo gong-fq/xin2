@@ -1,0 +1,50 @@
+# Netlify 配置文件
+
+[build]
+  # 如果有构建命令，在这里指定
+  # command = "npm run build"
+  
+  # 发布目录（通常是构建输出目录）
+  publish = "."
+  
+  # Functions 目录
+  functions = "netlify/functions"
+
+[build.environment]
+  # Node.js 版本
+  NODE_VERSION = "18"
+
+# Functions 配置
+[functions]
+  # Functions 目录
+  directory = "netlify/functions"
+  
+  # Functions 运行时设置
+  node_bundler = "esbuild"
+
+# 重定向规则（如果需要）
+# [[redirects]]
+#   from = "/api/*"
+#   to = "/.netlify/functions/:splat"
+#   status = 200
+
+# 头部设置（增强安全性）
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# 针对 HTML 文件的缓存设置
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# 针对静态资源的缓存设置
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
