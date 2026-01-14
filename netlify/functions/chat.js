@@ -1,6 +1,6 @@
-// Netlify Functions - chat.js (流式传输优化版)
+// Netlify Functions - chat.js (流式传输修正版)
 // 放置路径: /netlify/functions/chat.js
-// 这个版本支持流式传输，大幅提升响应速度
+// 修正: Netlify Functions需要手动处理流式数据
 
 exports.handler = async (event, context) => {
   // 只允许POST请求
@@ -57,7 +57,7 @@ exports.handler = async (event, context) => {
     console.log('📨 收到请求:', {
       model: model || 'deepseek-chat',
       messageCount: messages?.length || 0,
-      stream: stream !== false, // 默认开启流式传输
+      stream: stream !== false,
       timestamp: new Date().toISOString()
     });
 
@@ -73,7 +73,7 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({
         model: model || 'deepseek-chat',
         messages: messages,
-        stream: stream !== false, // 默认开启流式传输
+        stream: stream !== false,
         temperature: 0.7,
         max_tokens: 2000
       })
@@ -101,8 +101,14 @@ exports.handler = async (event, context) => {
 
     // 5. 返回响应
     if (stream !== false) {
-      // 流式响应 - 关键优化点
+      // 流式响应 - 需要手动读取并转换为字符串
       console.log('✅ 开始流式传输');
+      
+      // 读取整个流
+      let streamData = '';
+      for await (const chunk of apiResponse.body) {
+        streamData += chunk.toString();
+      }
       
       return {
         statusCode: 200,
@@ -110,14 +116,12 @@ exports.handler = async (event, context) => {
           ...headers,
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-          'X-Accel-Buffering': 'no' // 禁用nginx缓冲
+          'Connection': 'keep-alive'
         },
-        body: apiResponse.body,
-        isBase64Encoded: false
+        body: streamData // 必须是字符串
       };
     } else {
-      // 非流式响应（兼容旧版本）
+      // 非流式响应
       const data = await apiResponse.json();
       console.log('✅ 请求成功（非流式）');
       
