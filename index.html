@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -18,11 +17,9 @@
                     ddet: ["\\begin{vmatrix} #1 \\end{vmatrix}", 1],
                     ppmat: ["\\begin{pmatrix} #1 \\end{pmatrix}", 1]
                 },
-                // 定义tikzpicture为空环境，防止报错
                 environments: {
                     tikzpicture: ['', '']
                 },
-                // 忽略不支持的LaTeX命令
                 processEnvironments: true,
                 processRefs: true
             },
@@ -34,7 +31,6 @@
             startup: {
                 ready() {
                     MathJax.startup.defaultReady();
-                    // 自定义错误处理，忽略tikzpicture相关错误
                     MathJax.startup.promise.then(() => {
                         console.log('MathJax已加载，tikzpicture环境已配置为忽略');
                     });
@@ -201,283 +197,228 @@
             <h1 style="font-size: 20px; margin-bottom: 8px;">数学核心素养AI</h1>
             <p style="font-size: 12px; opacity: 0.8;">龚凤乾教授设计</p>
             <hr style="margin: 15px 0; opacity: 0.2;">
+            <p style="font-size: 13px; line-height: 1.6;">
+                <strong>数学认知四阶段理论</strong><br><br>
+                <strong>1️⃣ 感性阶段</strong><br>
+                通过观察、实验获得直观印象<br><br>
+                <strong>2️⃣ 数学抽象阶段</strong><br>
+                提炼概念、建立模型<br><br>
+                <strong>3️⃣ 数学推理阶段</strong><br>
+                逻辑推理、证明定理<br><br>
+                <strong>4️⃣ 知识应用阶段</strong><br>
+                解决实际问题、创新应用
+            </p>
             
-            <div style="font-size: 13px; line-height: 1.6;">
-                <p style="font-weight: bold; margin-bottom: 12px;"><i class="fas fa-info-circle"></i> 使用说明:</p>
-                <ul style="padding-left: 18px; opacity: 0.9;">
-                    <li style="margin-bottom: 12px;"><strong>智能问答:</strong>在下方输入框描述数学问题,支持代数、几何及线代。</li>
-                    <li style="margin-bottom: 12px;"><strong>完美公式:</strong>深度优化渲染,精准展示克莱姆法则等复杂行列式。</li>
-                    <li style="margin-bottom: 12px;"><strong>动态绘图:</strong>AI自动识别函数并调用Desmos可视化。</li>
-                    <li style="margin-bottom: 12px;"><strong>历史记录:</strong>查看和管理聊天历史,支持删除功能。</li>
-                </ul>
-                <div style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; font-size: 11px;">
-                    <strong>⚠️ 使用提示:</strong><br>
-                    如出现"Failed to fetch"错误,请:<br>
-                    1. 检查API密钥是否有效<br>
-                    2. 确认网络连接正常<br>
-                    3. 查看浏览器控制台详细信息
-                </div>
-            </div>
-
             <div class="history-section">
                 <div class="history-title">
-                    <span><i class="fas fa-history"></i> 聊天历史</span>
-                    <span style="font-size: 11px; cursor: pointer; opacity: 0.7;" id="clearAllHistory" title="清空所有历史">
-                        <i class="fas fa-trash"></i>
-                    </span>
+                    <span>历史记录</span>
+                    <span style="cursor: pointer; opacity: 0.7; font-size: 12px;" onclick="clearAllHistory()">清空</span>
                 </div>
                 <div class="history-list" id="historyList"></div>
-            </div>
-            
-            <div style="margin-top: auto;">
-                <hr style="margin: 15px 0; opacity: 0.2;">
-                <p style="font-size: 12px; opacity: 0.7;">提示:若遇到显示异常,请刷新页面或检查网络连接。</p>
             </div>
         </div>
 
         <div class="right-panel">
             <div class="chat-container" id="chatContainer">
-                <div class="message ai-message">您好!我是数学助学AI。我已经更新了左侧布局并优化了响应逻辑。请问有什么数学问题我可以帮您?</div>
+                <div class="message ai-message">
+                    <div>你好！我是数学核心素养AI助手，基于龚凤乾教授的"数学认知四阶段理论"设计。<br><br>
+                    我可以帮助你:<br>
+                    • 理解数学概念和原理<br>
+                    • 解决数学问题和证明<br>
+                    • 可视化数学函数和图形<br>
+                    • 绘制高级数学图表<br><br>
+                    有什么数学问题想要探讨吗?</div>
+                </div>
+            </div>
+
+            <div class="tool-bar">
+                <button class="tool-btn" onclick="toggleDesmos()">
+                    <i class="fas fa-calculator"></i> Desmos画板
+                </button>
+                <button class="tool-btn danger" onclick="clearChat()">
+                    <i class="fas fa-trash"></i> 清空对话
+                </button>
             </div>
 
             <div id="desmos-container"></div>
-            <div class="tool-bar">
-                <button class="tool-btn" id="toggleDesmos"><i class="fas fa-chart-line"></i> 开启/关闭 Desmos 图形</button>
-                <button class="tool-btn danger" id="clearChat"><i class="fas fa-trash-alt"></i> 清空当前对话</button>
-            </div>
-            
+
             <div class="input-area">
                 <div class="input-container">
-                    <textarea class="input-box" id="messageInput" placeholder="请输入数学问题..."></textarea>
-                    <button class="send-btn" id="sendBtn"><i class="fas fa-paper-plane"></i></button>
+                    <textarea id="messageInput" class="input-box" placeholder="输入你的数学问题..." rows="1"></textarea>
+                    <button id="sendBtn" class="send-btn">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // API配置 - 需要在Netlify Functions中配置chat函数，或者直接使用API密钥
+        // 配置区域
         const API_URL = '/.netlify/functions/chat';
-        // 如果要直接使用DeepSeek API，取消下面这行的注释并填入您的API密钥
+        
+        // 如果需要直接调用DeepSeek API，取消注释并配置以下两行
         // const DIRECT_API_KEY = 'your-deepseek-api-key-here';
         // const DIRECT_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 
+        // DOM元素
         const chatContainer = document.getElementById('chatContainer');
         const messageInput = document.getElementById('messageInput');
         const sendBtn = document.getElementById('sendBtn');
-        const desmosEl = document.getElementById('desmos-container');
-        const historyList = document.getElementById('historyList');
+        let chatHistory = [];
+        let messageIdCounter = 0;
 
-        let calculator = null;
-        let chatHistory = [{ 
-            role: "system", 
-            content: "你是一个数学教育专家。要求:1. 矩阵用 pmatrix,行列式用 vmatrix。2. 展示分式嵌套行列式时必须完整。3. 变量包裹在 $ 中。4. 复杂公式使用 $$。5. 当回答涉及函数时,在回答末尾添加 [GRAPH: 函数表达式] 标记,例如 [GRAPH: y=x^2] 或 [GRAPH: y=sin(x)]。**重要**: 绝对不要使用 \\begin{tikzpicture} 环境，因为MathJax不支持TikZ绘图。对于任何图形需求，一律使用 [GRAPH: ...] 格式让系统调用Desmos绘图。" 
-        }];
-        let conversations = []; // 存储所有对话历史
-        let messageCounter = 0; // 消息计数器
+        // Desmos计算器
+        let desmosCalculator = null;
 
-        // 检测API配置
         function checkAPIConfiguration() {
-            console.log('检查API配置...');
-            console.log('API_URL:', API_URL);
-            // 检测是否有直接API密钥配置
-            if (typeof DIRECT_API_KEY !== 'undefined' && DIRECT_API_KEY && DIRECT_API_KEY !== 'your-deepseek-api-key-here') {
-                console.log('✓ 检测到直接API密钥配置');
-                return true;
-            }
-            console.log('⚠ 使用Netlify Functions，请确保已部署chat函数');
-            return false;
-        }
-
-        // 从localStorage加载历史记录
-        function loadHistory() {
-            const saved = localStorage.getItem('chatConversations');
-            if (saved) {
-                conversations = JSON.parse(saved);
-                updateHistoryUI();
-            }
-        }
-
-        // 保存历史记录到localStorage
-        function saveHistory() {
-            localStorage.setItem('chatConversations', JSON.stringify(conversations));
-        }
-
-        // 更新历史记录UI
-        function updateHistoryUI() {
-            historyList.innerHTML = '';
-            conversations.forEach((conv, index) => {
-                const div = document.createElement('div');
-                div.className = 'history-item';
-                div.innerHTML = `
-                    <span style="flex: 1;" title="${conv.preview}">${conv.title}</span>
-                    <span class="history-item-delete" data-index="${index}">×</span>
-                `;
-                div.querySelector('span:first-child').onclick = () => loadConversation(index);
-                div.querySelector('.history-item-delete').onclick = (e) => {
-                    e.stopPropagation();
-                    deleteConversation(index);
-                };
-                historyList.appendChild(div);
-            });
-        }
-
-        // 保存当前对话
-        function saveCurrentConversation(userMsg, aiMsg) {
-            const conv = {
-                title: userMsg.substring(0, 20) + (userMsg.length > 20 ? '...' : ''),
-                preview: userMsg,
-                timestamp: Date.now(),
-                messages: [...chatHistory]
-            };
-            conversations.unshift(conv);
-            if (conversations.length > 20) conversations.pop(); // 最多保存20条
-            saveHistory();
-            updateHistoryUI();
-        }
-
-        // 加载历史对话
-        function loadConversation(index) {
-            if (confirm('加载此对话将清空当前内容,是否继续?')) {
-                const conv = conversations[index];
-                chatHistory = [...conv.messages];
-                chatContainer.innerHTML = '';
-                
-                // 重新渲染所有消息(跳过system消息)
-                chatHistory.forEach((msg, idx) => {
-                    if (msg.role === 'user') {
-                        addMessageToUI('user', msg.content, false);
-                    } else if (msg.role === 'assistant') {
-                        addMessageToUI('ai', msg.content, false);
-                    }
-                });
-            }
-        }
-
-        // 删除单条历史记录
-        function deleteConversation(index) {
-            if (confirm('确定要删除这条历史记录吗?')) {
-                conversations.splice(index, 1);
-                saveHistory();
-                updateHistoryUI();
-            }
-        }
-
-        // 清空所有历史记录
-        document.getElementById('clearAllHistory').onclick = () => {
-            if (confirm('确定要清空所有历史记录吗?此操作不可恢复!')) {
-                conversations = [];
-                saveHistory();
-                updateHistoryUI();
-            }
-        };
-
-        // 清空当前对话
-        document.getElementById('clearChat').onclick = () => {
-            if (confirm('确定要清空当前对话吗?')) {
-                chatHistory = [chatHistory[0]]; // 保留system消息
-                chatContainer.innerHTML = '<div class="message ai-message">对话已清空。请问有什么数学问题我可以帮您?</div>';
-            }
-        };
-
-        // 图形开关
-        document.getElementById('toggleDesmos').onclick = () => {
-            const show = desmosEl.style.display === 'none' || desmosEl.style.display === '';
-            desmosEl.style.display = show ? 'block' : 'none';
-            if (show && !calculator) {
-                calculator = Desmos.GraphingCalculator(desmosEl, { expressions: true, settingsMenu: false });
-            }
-        };
-
-        // 自动检测并绘制函数
-        function autoDrawFunction(text) {
-            const graphMatch = text.match(/\[GRAPH:\s*(.+?)\]/);
-            if (graphMatch) {
-                const expr = graphMatch[1].trim();
-                if (!calculator) {
-                    desmosEl.style.display = 'block';
-                    calculator = Desmos.GraphingCalculator(desmosEl, { expressions: true, settingsMenu: false });
-                }
-                try {
-                    calculator.setExpression({ latex: expr });
-                } catch (e) {
-                    console.error('Desmos绘图错误:', e);
-                }
-            }
-        }
-
-        // Plotly绘图功能（作为备选方案）
-        window.drawWithPlotly = function(containerId, funcExpr, xRange = [-10, 10]) {
-            try {
-                const x = [];
-                const y = [];
-                const step = (xRange[1] - xRange[0]) / 500;
-                
-                // 简单的函数解析（仅支持基本表达式）
-                const func = new Function('x', `return ${funcExpr.replace(/\^/g, '**')}`);
-                
-                for (let xi = xRange[0]; xi <= xRange[1]; xi += step) {
-                    x.push(xi);
-                    try {
-                        y.push(func(xi));
-                    } catch {
-                        y.push(null);
-                    }
-                }
-
-                const trace = {
-                    x: x,
-                    y: y,
-                    type: 'scatter',
-                    mode: 'lines',
-                    line: { color: '#1a2980', width: 2 }
-                };
-
-                const layout = {
-                    title: funcExpr,
-                    xaxis: { title: 'x', gridcolor: '#e9ecef', zeroline: true },
-                    yaxis: { title: 'y', gridcolor: '#e9ecef', zeroline: true },
-                    plot_bgcolor: '#fafafa',
-                    paper_bgcolor: 'white',
-                    margin: { l: 50, r: 30, t: 50, b: 50 }
-                };
-
-                Plotly.newPlot(containerId, [trace], layout, {responsive: true});
-                console.log('Plotly绘图成功');
-            } catch (e) {
-                console.error('Plotly绘图失败:', e);
-            }
-        };
-
-        // 格式化输出
-        function formatMathText(text) {
-            // 预处理：移除tikzpicture环境，避免MathJax报错
-            text = text.replace(/\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}/g, 
-                '<div style="padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; margin: 10px 0;">' +
-                '<strong>📊 图形说明：</strong>此处原为TikZ图形代码。建议使用 <code>[GRAPH: 函数表达式]</code> 格式让系统自动调用Desmos绘图。' +
-                '</div>');
+            console.log('API配置状态:');
+            console.log('- Netlify Functions URL:', API_URL);
             
-            let formatted = text.replace(/\\\\/g, '\\\\\\\\');
-            return marked.parse(formatted);
+            if (typeof DIRECT_API_KEY !== 'undefined' && DIRECT_API_KEY && DIRECT_API_KEY !== 'your-deepseek-api-key-here') {
+                console.log('- 直接API调用: 已配置 ✓');
+                console.log('- API URL:', typeof DIRECT_API_URL !== 'undefined' ? DIRECT_API_URL : 'https://api.deepseek.com/v1/chat/completions');
+            } else {
+                console.log('- 直接API调用: 未配置，将使用Netlify Functions');
+            }
+        }
+
+        // Desmos相关
+        function toggleDesmos() {
+            const container = document.getElementById('desmos-container');
+            if (container.style.display === 'none' || !container.style.display) {
+                container.style.display = 'block';
+                if (!desmosCalculator) {
+                    desmosCalculator = Desmos.GraphingCalculator(container, {
+                        expressions: true,
+                        settingsMenu: true,
+                        zoomButtons: true
+                    });
+                }
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
+        function clearChat() {
+            if (confirm('确定要清空所有对话吗？这将不会影响历史记录。')) {
+                chatContainer.innerHTML = `
+                    <div class="message ai-message">
+                        <div>对话已清空。有什么新的数学问题想要探讨吗?</div>
+                    </div>
+                `;
+                chatHistory = [];
+            }
+        }
+
+        // 历史记录功能
+        function saveCurrentConversation(userMsg, aiMsg) {
+            const conversations = JSON.parse(localStorage.getItem('mathAI_conversations') || '[]');
+            const newConv = {
+                id: Date.now(),
+                timestamp: new Date().toISOString(),
+                userMessage: userMsg.substring(0, 50) + (userMsg.length > 50 ? '...' : ''),
+                fullUserMessage: userMsg,
+                fullAIMessage: aiMsg
+            };
+            conversations.unshift(newConv);
+            if (conversations.length > 20) conversations.pop();
+            localStorage.setItem('mathAI_conversations', JSON.stringify(conversations));
+            loadHistory();
+        }
+
+        function loadHistory() {
+            const conversations = JSON.parse(localStorage.getItem('mathAI_conversations') || '[]');
+            const historyList = document.getElementById('historyList');
+            
+            if (conversations.length === 0) {
+                historyList.innerHTML = '<div style="opacity: 0.5; font-size: 11px;">暂无历史记录</div>';
+                return;
+            }
+            
+            historyList.innerHTML = conversations.map(conv => `
+                <div class="history-item" onclick="loadConversation(${conv.id})">
+                    <span>${conv.userMessage}</span>
+                    <span class="history-item-delete" onclick="event.stopPropagation(); deleteHistory(${conv.id})">×</span>
+                </div>
+            `).join('');
+        }
+
+        function loadConversation(convId) {
+            const conversations = JSON.parse(localStorage.getItem('mathAI_conversations') || '[]');
+            const conv = conversations.find(c => c.id === convId);
+            if (!conv) return;
+            
+            clearChat();
+            addMessageToUI('user', conv.fullUserMessage);
+            addMessageToUI('ai', conv.fullAIMessage);
+            chatHistory = [
+                { role: "user", content: conv.fullUserMessage },
+                { role: "assistant", content: conv.fullAIMessage }
+            ];
+        }
+
+        function deleteHistory(convId) {
+            if (confirm('确定要删除这条历史记录吗？')) {
+                let conversations = JSON.parse(localStorage.getItem('mathAI_conversations') || '[]');
+                conversations = conversations.filter(c => c.id !== convId);
+                localStorage.setItem('mathAI_conversations', JSON.stringify(conversations));
+                loadHistory();
+            }
+        }
+
+        function clearAllHistory() {
+            if (confirm('确定要清空所有历史记录吗？')) {
+                localStorage.removeItem('mathAI_conversations');
+                loadHistory();
+            }
+        }
+
+        // 自动调整输入框高度
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+        });
+
+        // 格式化数学文本
+        function formatMathText(text) {
+            return marked.parse(text);
+        }
+
+        // 自动绘制函数（如果检测到函数定义）
+        function autoDrawFunction(text) {
+            const functionPattern = /(?:f\(x\)|y)\s*=\s*([^,\n]+)/gi;
+            const matches = text.matchAll(functionPattern);
+            
+            for (const match of matches) {
+                if (desmosCalculator) {
+                    const expr = match[1].trim();
+                    desmosCalculator.setExpression({ latex: `y=${expr}` });
+                    
+                    const container = document.getElementById('desmos-container');
+                    if (container.style.display === 'none' || !container.style.display) {
+                        toggleDesmos();
+                    }
+                }
+                break;
+            }
         }
 
         // 添加消息到UI
-        function addMessageToUI(role, text, enableDelete = true) {
+        function addMessageToUI(role, text) {
             const div = document.createElement('div');
-            div.className = `message ${role}-message`;
-            div.setAttribute('data-id', messageCounter++);
-            
-            if (enableDelete) {
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'delete-btn';
-                deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
-                deleteBtn.onclick = () => deleteMessage(div);
-                div.appendChild(deleteBtn);
-            }
+            div.className = `message ${role === 'user' ? 'user-message' : 'ai-message'}`;
+            div.setAttribute('data-id', messageIdCounter++);
             
             const contentDiv = document.createElement('div');
-            contentDiv.innerHTML = role === 'ai' ? formatMathText(text) : text;
+            contentDiv.innerHTML = role === 'user' ? text : formatMathText(text);
             div.appendChild(contentDiv);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.innerHTML = '×';
+            deleteBtn.onclick = () => deleteMessage(div);
+            div.appendChild(deleteBtn);
             
             chatContainer.appendChild(div);
             chatContainer.scrollTop = chatContainer.scrollHeight;
@@ -494,24 +435,18 @@
         // 删除单条消息
         function deleteMessage(msgElement) {
             if (confirm('确定要删除这条消息吗?')) {
-                const msgId = parseInt(msgElement.getAttribute('data-id'));
-                
-                // 从UI移除
                 msgElement.remove();
-                
-                // 从chatHistory中移除(需要找到对应的索引)
-                // 注意:这里简化处理,实际应该根据消息ID精确匹配
-                // 由于流式输出的特性,这里不做chatHistory的精确同步
             }
         }
 
-        // 发送逻辑
+        // 发送逻辑 - 优化版本，默认使用流式传输
         async function handleSend() {
             const content = messageInput.value.trim();
             if (!content || sendBtn.disabled) return;
 
             addMessageToUI('user', content);
             messageInput.value = '';
+            messageInput.style.height = 'auto';
             sendBtn.disabled = true;
 
             const aiDiv = addMessageToUI('ai', '<div class="thinking-dots"><span></span><span></span><span></span></div>');
@@ -527,34 +462,30 @@
                         <div style="color: #dc3545;">
                             <strong>⏱️ 请求超时</strong><br><br>
                             可能的原因:<br>
-                            1. Netlify Functions未配置或未部署<br>
-                            2. API密钥无效或配额用尽<br>
-                            3. 网络连接问题<br><br>
-                            <strong>解决方案:</strong><br>
-                            • 检查浏览器控制台(F12)查看详细错误<br>
-                            • 确认已正确配置Netlify Functions<br>
-                            • 或在代码中配置DIRECT_API_KEY直接调用API
+                            1. 网络连接问题<br>
+                            2. API服务响应慢<br>
+                            3. Netlify Functions配置问题<br><br>
+                            请检查网络连接后重试。
                         </div>
                     `;
                     sendBtn.disabled = false;
                     chatHistory.pop();
                 }
-            }, 30000); // 30秒超时
+            }, 30000);
 
             try {
-                // 决定使用哪个API端点和模式
+                // 决定使用哪个API端点
                 let apiUrl = API_URL;
                 let headers = { 'Content-Type': 'application/json' };
-                let useStream = false; // 默认关闭流式传输，更稳定
+                let useStream = true; // 默认开启流式传输
                 
                 // 如果配置了直接API密钥，使用直接调用
                 if (typeof DIRECT_API_KEY !== 'undefined' && DIRECT_API_KEY && DIRECT_API_KEY !== 'your-deepseek-api-key-here') {
                     apiUrl = typeof DIRECT_API_URL !== 'undefined' ? DIRECT_API_URL : 'https://api.deepseek.com/v1/chat/completions';
                     headers['Authorization'] = `Bearer ${DIRECT_API_KEY}`;
-                    useStream = true; // 直接调用时可以使用流式
-                    console.log('使用直接API调用');
+                    console.log('使用直接API调用（流式）');
                 } else {
-                    console.log('使用Netlify Functions (非流式模式)');
+                    console.log('使用Netlify Functions（流式）');
                 }
 
                 const response = await fetch(apiUrl, {
@@ -575,28 +506,28 @@
                     throw new Error(`API请求失败 (${response.status}): ${errorText}`);
                 }
 
-                // 处理响应
-                if (useStream) {
-                    // 流式处理
-                    const reader = response.body.getReader();
-                    const decoder = new TextDecoder();
+                // 流式处理
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
 
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-                        
-                        const chunk = decoder.decode(value);
-                        const lines = chunk.split('\n');
-                        
-                        for (const line of lines) {
-                            if (line.trim().startsWith('data: ')) {
-                                const dataStr = line.replace('data: ', '').trim();
-                                if (dataStr === '[DONE]') continue;
-                                try {
-                                    const data = JSON.parse(dataStr);
-                                    const delta = data.choices[0].delta.content || "";
-                                    
-                                    if (delta && isFirstChunk) {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n');
+                    
+                    for (const line of lines) {
+                        if (line.trim().startsWith('data: ')) {
+                            const dataStr = line.replace('data: ', '').trim();
+                            if (dataStr === '[DONE]') continue;
+                            
+                            try {
+                                const data = JSON.parse(dataStr);
+                                const delta = data.choices?.[0]?.delta?.content || "";
+                                
+                                if (delta) {
+                                    if (isFirstChunk) {
                                         aiDiv.querySelector('div').innerHTML = "";
                                         isFirstChunk = false;
                                     }
@@ -604,25 +535,18 @@
                                     fullAIResponse += delta;
                                     aiDiv.querySelector('div').innerHTML = formatMathText(fullAIResponse);
                                     chatContainer.scrollTop = chatContainer.scrollHeight;
-                                } catch (e) {
-                                    console.error('解析数据块错误:', e, '原始数据:', dataStr);
+                                }
+                            } catch (e) {
+                                // 忽略解析错误的数据块
+                                if (dataStr && dataStr !== '') {
+                                    console.warn('跳过无效数据块:', dataStr.substring(0, 50));
                                 }
                             }
                         }
                     }
-                } else {
-                    // 非流式处理（一次性返回）
-                    const data = await response.json();
-                    
-                    if (data.choices && data.choices[0] && data.choices[0].message) {
-                        fullAIResponse = data.choices[0].message.content;
-                        aiDiv.querySelector('div').innerHTML = formatMathText(fullAIResponse);
-                        isFirstChunk = false;
-                    } else {
-                        throw new Error('API返回格式错误');
-                    }
                 }
                 
+                // 完成后处理MathJax和函数绘制
                 if (window.MathJax) {
                     MathJax.typesetPromise([aiDiv.querySelector('div')]).then(() => {
                         autoDrawFunction(fullAIResponse);
@@ -641,15 +565,13 @@
                     <strong>❌ 连接失败</strong><br><br>
                     <strong>错误信息:</strong> ${error.message}<br><br>
                     <strong>可能的原因:</strong><br>
-                    1. <strong>Netlify Functions未配置</strong> - 需要创建 /netlify/functions/chat.js 文件<br>
-                    2. <strong>API密钥问题</strong> - DeepSeek API密钥无效或配额用尽<br>
-                    3. <strong>CORS跨域限制</strong> - 浏览器阻止了跨域请求<br>
-                    4. <strong>网络连接问题</strong><br><br>
-                    <strong>快速解决方案:</strong><br>
-                    • 打开浏览器控制台(按F12)查看详细错误<br>
-                    • 检查Network标签页看请求状态<br>
+                    1. 网络连接问题<br>
+                    2. Netlify Functions未正确配置<br>
+                    3. API密钥问题<br><br>
+                    <strong>解决方案:</strong><br>
+                    • 检查浏览器控制台(F12)查看详细错误<br>
                     • 确认Netlify Functions已正确部署<br>
-                    • 查看部署指南 DEPLOYMENT_GUIDE.md
+                    • 验证DEEPSEEK_API_KEY环境变量
                 </div>`;
                 
                 aiDiv.querySelector('div').innerHTML = errorMsg;
@@ -667,19 +589,16 @@
             }
         });
 
-        // 初始化加载历史记录
+        // 初始化
         loadHistory();
-        
-        // 检查API配置
         checkAPIConfiguration();
         
-        // 页面加载完成提示
         console.log('='.repeat(50));
-        console.log('数学核心素养AI - 已加载');
+        console.log('数学核心素养AI - 已加载（流式传输优化版）');
         console.log('MathJax: ✓');
         console.log('Plotly: ✓');
         console.log('Desmos: ✓');
-        console.log('tikzpicture环境: 已配置为忽略');
+        console.log('流式传输: ✓ 启用');
         console.log('='.repeat(50));
     </script>
 </body>

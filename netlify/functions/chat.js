@@ -1,6 +1,6 @@
-// Netlify Functions - chat.js (简化版 - 非流式)
+// Netlify Functions - chat.js (流式传输优化版)
 // 放置路径: /netlify/functions/chat.js
-// 这个版本更稳定，不使用流式传输
+// 这个版本支持流式传输，大幅提升响应速度
 
 exports.handler = async (event, context) => {
   // 只允许POST请求
@@ -16,8 +16,7 @@ exports.handler = async (event, context) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Content-Type': 'application/json'
+    'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
 
   // 处理OPTIONS请求（预检）
@@ -33,7 +32,7 @@ exports.handler = async (event, context) => {
       console.error('❌ DEEPSEEK_API_KEY 环境变量未设置');
       return {
         statusCode: 500,
-        headers,
+        headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           error: 'API密钥未配置',
           message: '请在Netlify Dashboard的Environment Variables中添加 DEEPSEEK_API_KEY'
@@ -48,20 +47,21 @@ exports.handler = async (event, context) => {
     } catch (e) {
       return {
         statusCode: 400,
-        headers,
+        headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: '无效的JSON格式' })
       };
     }
 
-    const { model, messages } = requestData;
+    const { model, messages, stream } = requestData;
     
     console.log('📨 收到请求:', {
       model: model || 'deepseek-chat',
       messageCount: messages?.length || 0,
+      stream: stream !== false, // 默认开启流式传输
       timestamp: new Date().toISOString()
     });
 
-    // 3. 调用DeepSeek API（非流式）
+    // 3. 调用DeepSeek API
     const fetch = (await import('node-fetch')).default;
     
     const apiResponse = await fetch('https://api.deepseek.com/v1/chat/completions', {
@@ -73,7 +73,7 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({
         model: model || 'deepseek-chat',
         messages: messages,
-        stream: false, // 关闭流式传输
+        stream: stream !== false, // 默认开启流式传输
         temperature: 0.7,
         max_tokens: 2000
       })
@@ -90,7 +90,7 @@ exports.handler = async (event, context) => {
       
       return {
         statusCode: apiResponse.status,
-        headers,
+        headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           error: 'DeepSeek API请求失败',
           status: apiResponse.status,
@@ -99,15 +99,34 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // 5. 返回成功响应
-    const data = await apiResponse.json();
-    console.log('✅ 请求成功');
-    
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify(data)
-    };
+    // 5. 返回响应
+    if (stream !== false) {
+      // 流式响应 - 关键优化点
+      console.log('✅ 开始流式传输');
+      
+      return {
+        statusCode: 200,
+        headers: {
+          ...headers,
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+          'X-Accel-Buffering': 'no' // 禁用nginx缓冲
+        },
+        body: apiResponse.body,
+        isBase64Encoded: false
+      };
+    } else {
+      // 非流式响应（兼容旧版本）
+      const data = await apiResponse.json();
+      console.log('✅ 请求成功（非流式）');
+      
+      return {
+        statusCode: 200,
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      };
+    }
 
   } catch (error) {
     console.error('❌ 函数执行错误:', {
@@ -117,7 +136,7 @@ exports.handler = async (event, context) => {
     
     return {
       statusCode: 500,
-      headers,
+      headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         error: '服务器内部错误',
         message: error.message
