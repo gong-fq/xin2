@@ -1,24 +1,9 @@
 {
-  "name": "math-ai-chat",
+  "name": "math-ai-netlify-functions",
   "version": "1.0.0",
-  "description": "数学核心素养AI - 完美行列式版",
-  "main": "index.html",
-  "scripts": {
-    "dev": "netlify dev",
-    "deploy": "netlify deploy --prod"
-  },
+  "description": "Netlify Functions for Math AI Chat",
   "dependencies": {
-    "node-fetch": "^2.6.7"
+    "node-fetch": "^3.3.0"
   },
-  "devDependencies": {
-    "netlify-cli": "^17.0.0"
-  },
-  "keywords": [
-    "math",
-    "ai",
-    "education",
-    "mathjax"
-  ],
-  "author": "龚凤乾教授",
-  "license": "MIT"
+  "type": "module"
 }
