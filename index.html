@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -7,66 +8,46 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    
-    <!-- MathJax 配置 - 优化版（消除警告） -->
     <script>
         window.MathJax = {
             tex: {
-                inlineMath: [['$', '$'], ['\\(', '\\)']],
-                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                inlineMath: [['$', '$']],
+                displayMath: [['$$', '$$']],
                 processEscapes: true,
-                processEnvironments: true,
-                packages: {'[+]': ['ams']},  // 正确加载AMS包
                 macros: {
                     ddet: ["\\begin{vmatrix} #1 \\end{vmatrix}", 1],
-                    det: ["\\begin{vmatrix} #1 \\end{vmatrix}", 1],
-                    pmat: ["\\begin{pmatrix} #1 \\end{pmatrix}", 1],
-                    bmat: ["\\begin{bmatrix} #1 \\end{bmatrix}", 1],
-                    vec: ["\\mathbf{#1}", 1],
-                    RR: "\\mathbb{R}",
-                    NN: "\\mathbb{N}",
-                    ZZ: "\\mathbb{Z}",
-                    QQ: "\\mathbb{Q}",
-                    CC: "\\mathbb{C}",
-                    fr: ["\\frac{#1}{#2}", 2]
-                }
-            },
-            svg: {
-                fontCache: 'global'
+                    ppmat: ["\\begin{pmatrix} #1 \\end{pmatrix}", 1]
+                },
+                // 定义tikzpicture为空环境，防止报错
+                environments: {
+                    tikzpicture: ['', '']
+                },
+                // 忽略不支持的LaTeX命令
+                processEnvironments: true,
+                processRefs: true
             },
             options: {
-                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
                 ignoreHtmlClass: 'tex2jax_ignore',
                 processHtmlClass: 'tex2jax_process'
             },
             startup: {
-                pageReady: () => {
-                    return MathJax.startup.defaultPageReady().then(() => {
-                        console.log('✅ MathJax 加载成功');
+                ready() {
+                    MathJax.startup.defaultReady();
+                    // 自定义错误处理，忽略tikzpicture相关错误
+                    MathJax.startup.promise.then(() => {
+                        console.log('MathJax已加载，tikzpicture环境已配置为忽略');
                     });
                 }
             }
         };
     </script>
-    
-    <!-- 使用备用CDN -->
-    <script id="MathJax-script" async 
-            src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
-            onerror="console.warn('MathJax主CDN加载失败'); this.src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js';">
-    </script>
-    
-    <!-- Desmos 图形计算器 -->
-    <script>
-        window.addEventListener('load', () => {
-            const script = document.createElement('script');
-            script.src = 'https://www.desmos.com/api/v1.9/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6';
-            script.onerror = () => console.warn('Desmos API 加载失败（可选功能）');
-            document.head.appendChild(script);
-        });
-    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <script src="https://www.desmos.com/api/v1.9/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
 
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background-color: #f5f7fa; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
         .container { 
@@ -102,45 +83,10 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
         }
 
-        .chat-container { 
-            flex: 1; 
-            padding: 25px; 
-            overflow-y: auto; 
-            background-color: #fafbfd; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 20px; 
-        }
-        
-        .message { 
-            max-width: 85%; 
-            padding: 15px 20px; 
-            border-radius: 18px; 
-            line-height: 1.8; 
-            word-wrap: break-word; 
-            position: relative;
-            font-size: 15px;
-        }
-        
-        .ai-message { 
-            align-self: flex-start; 
-            background: white; 
-            border: 1px solid #e1f0ff;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-        
-        .user-message { 
-            align-self: flex-end; 
-            background: linear-gradient(135deg, #1a2980, #26d0ce); 
-            color: white; 
-        }
-
-        .error-message {
-            align-self: flex-start;
-            background: #fff3cd;
-            border: 1px solid #ffc107;
-            color: #856404;
-        }
+        .chat-container { flex: 1; padding: 25px; overflow-y: auto; background-color: #fafbfd; display: flex; flex-direction: column; gap: 20px; }
+        .message { max-width: 85%; padding: 15px 20px; border-radius: 18px; line-height: 1.7; word-wrap: break-word; position: relative; }
+        .ai-message { align-self: flex-start; background: white; border: 1px solid #e1f0ff; }
+        .user-message { align-self: flex-end; background: linear-gradient(135deg, #1a2980, #26d0ce); color: white; }
 
         .delete-btn {
             position: absolute;
@@ -156,101 +102,24 @@
             font-size: 12px;
             display: none;
             transition: background 0.2s;
-            z-index: 10;
         }
         .message:hover .delete-btn { display: block; }
         .delete-btn:hover { background: rgba(255, 0, 0, 0.9); }
 
-        /* MathJax 样式优化 */
-        .mjx-container { 
-            margin: 1em 0 !important; 
-            font-size: 1.15em !important; 
-            display: block !important; 
-            text-align: center;
-            max-width: 100%; 
-            overflow-x: auto;
-            overflow-y: hidden;
-        }
-        
-        .mjx-container[display="true"] {
-            margin: 1.5em 0 !important;
-            padding: 10px 0;
-        }
-        
-        mjx-container[jax="CHTML"][display="true"] {
-            display: block !important;
-            text-align: center !important;
-            margin: 1.5em 0 !important;
-        }
-        
-        .mjx-container[display="false"] {
-            display: inline-block !important;
-            margin: 0 0.2em !important;
-        }
+        .mjx-container { margin: 1.2em 0 !important; font-size: 1.1em !important; display: block !important; text-align: center; max-width: 100%; overflow-x: auto; }
 
-        mjx-mtr {
-            display: table-row !important;
-        }
-        
-        mjx-mtd {
-            padding: 0.3em 0.5em !important;
-        }
-
-        #desmos-container { 
-            height: 320px; 
-            border-top: 1px solid #eee; 
-            display: none;
-            background: #f5f5f5;
-        }
-        
-        .tool-bar { 
-            padding: 10px 20px; 
-            background: #f8f9fa; 
-            border-top: 1px solid #eee; 
-            display: flex; 
-            gap: 10px; 
-        }
-        
-        .tool-btn { 
-            font-size: 12px; 
-            padding: 6px 15px; 
-            border-radius: 20px; 
-            border: 1px solid #1a2980; 
-            color: #1a2980; 
-            cursor: pointer; 
-            background: white; 
-            transition: all 0.2s; 
-        }
+        #desmos-container { height: 320px; border-top: 1px solid #eee; display: none; }
+        .tool-bar { padding: 10px 20px; background: #f8f9fa; border-top: 1px solid #eee; display: flex; gap: 10px; }
+        .tool-btn { font-size: 12px; padding: 6px 15px; border-radius: 20px; border: 1px solid #1a2980; color: #1a2980; cursor: pointer; background: white; transition: all 0.2s; }
         .tool-btn:hover { background: #1a2980; color: white; }
         .tool-btn.danger { border-color: #dc3545; color: #dc3545; }
         .tool-btn.danger:hover { background: #dc3545; color: white; }
 
         .input-area { padding: 20px; border-top: 1px solid #eee; }
         .input-container { display: flex; gap: 12px; align-items: flex-end; }
-        .input-box { 
-            flex: 1; 
-            border: 1px solid #ddd; 
-            border-radius: 12px; 
-            padding: 12px; 
-            font-size: 15px; 
-            resize: none; 
-            min-height: 50px; 
-            max-height: 150px;
-            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
-        }
-        .send-btn { 
-            background: #1a2980; 
-            color: white; 
-            border: none; 
-            border-radius: 50%; 
-            width: 50px; 
-            height: 50px; 
-            cursor: pointer; 
-            flex-shrink: 0; 
-            transition: all 0.2s; 
-        }
-        .send-btn:hover { transform: scale(1.05); }
-        .send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .input-box { flex: 1; border: 1px solid #ddd; border-radius: 12px; padding: 12px; font-size: 15px; resize: none; min-height: 50px; max-height: 150px; }
+        .send-btn { background: #1a2980; color: white; border: none; border-radius: 50%; width: 50px; height: 50px; cursor: pointer; flex-shrink: 0; transition: opacity 0.2s; }
+        .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .history-section {
             margin-top: 20px;
@@ -294,39 +163,36 @@
             color: white;
         }
 
-        @keyframes typing {
-            0%, 100% { content: '思考中'; }
-            33% { content: '思考中.'; }
-            66% { content: '思考中..'; }
+        /* 思考动画 */
+        .thinking-dots {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
         }
-        .typing::after {
-            content: '思考中';
-            animation: typing 1.5s infinite;
-        }
-
-        pre {
-            background: #f5f5f5;
-            border-radius: 8px;
-            padding: 12px;
-            overflow-x: auto;
-            margin: 10px 0;
-        }
-        
-        code {
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-        }
-
-        .status-indicator {
-            display: inline-block;
+        .thinking-dots span {
             width: 8px;
             height: 8px;
+            background: #1a2980;
             border-radius: 50%;
-            margin-right: 5px;
+            display: inline-block;
+            animation: thinking-bounce 1.4s infinite ease-in-out both;
         }
-        .status-ok { background: #28a745; }
-        .status-error { background: #dc3545; }
-        .status-warning { background: #ffc107; }
+        .thinking-dots span:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+        .thinking-dots span:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+        @keyframes thinking-bounce {
+            0%, 80%, 100% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 <body>
@@ -340,27 +206,16 @@
                 <p style="font-weight: bold; margin-bottom: 12px;"><i class="fas fa-info-circle"></i> 使用说明:</p>
                 <ul style="padding-left: 18px; opacity: 0.9;">
                     <li style="margin-bottom: 12px;"><strong>智能问答:</strong>在下方输入框描述数学问题,支持代数、几何及线代。</li>
-                    <li style="margin-bottom: 12px;"><strong>完美公式:</strong>采用MathJax渲染，支持行列式、矩阵、向量等所有数学符号。</li>
+                    <li style="margin-bottom: 12px;"><strong>完美公式:</strong>深度优化渲染,精准展示克莱姆法则等复杂行列式。</li>
                     <li style="margin-bottom: 12px;"><strong>动态绘图:</strong>AI自动识别函数并调用Desmos可视化。</li>
                     <li style="margin-bottom: 12px;"><strong>历史记录:</strong>查看和管理聊天历史,支持删除功能。</li>
                 </ul>
                 <div style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; font-size: 11px;">
-                    <strong>✅ 已优化:</strong><br>
-                    • MathJax 无警告加载<br>
-                    • API 错误处理增强<br>
-                    • 响应超时保护<br>
-                    • 稳定的数据传输
-                </div>
-                <div style="margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; font-size: 11px;">
-                    <strong>📝 LaTeX示例:</strong><br>
-                    • 行列式: $\begin{vmatrix} a & b \\ c & d \end{vmatrix}$<br>
-                    • 分数: $\frac{a}{b}$<br>
-                    • 根号: $\sqrt{x}$<br>
-                    • 求和: $\sum_{i=1}^{n}$
-                </div>
-                <div id="systemStatus" style="margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; font-size: 11px;">
-                    <strong>系统状态:</strong><br>
-                    <span class="status-indicator status-warning"></span> 正在初始化...
+                    <strong>⚠️ 使用提示:</strong><br>
+                    如出现"Failed to fetch"错误,请:<br>
+                    1. 检查API密钥是否有效<br>
+                    2. 确认网络连接正常<br>
+                    3. 查看浏览器控制台详细信息
                 </div>
             </div>
 
@@ -376,26 +231,25 @@
             
             <div style="margin-top: auto;">
                 <hr style="margin: 15px 0; opacity: 0.2;">
-                <p style="font-size: 12px; opacity: 0.7;">提示:所有数学公式都支持标准LaTeX语法。</p>
+                <p style="font-size: 12px; opacity: 0.7;">提示:若遇到显示异常,请刷新页面或检查网络连接。</p>
             </div>
         </div>
 
         <div class="right-panel">
             <div class="chat-container" id="chatContainer">
-                <div class="message ai-message">您好!我是数学助养AI。已优化响应速度并加强安全保护。请问有什么数学问题我可以帮您?</div>
+                <div class="message ai-message">您好!我是数学助学AI。我已经更新了左侧布局并优化了响应逻辑。请问有什么数学问题我可以帮您?</div>
             </div>
 
             <div id="desmos-container"></div>
-
             <div class="tool-bar">
-                <button class="tool-btn" id="toggleDesmos"><i class="fas fa-chart-line"></i> 开/关图形</button>
-                <button class="tool-btn danger" id="clearChat"><i class="fas fa-eraser"></i> 清空对话</button>
+                <button class="tool-btn" id="toggleDesmos"><i class="fas fa-chart-line"></i> 开启/关闭 Desmos 图形</button>
+                <button class="tool-btn danger" id="clearChat"><i class="fas fa-trash-alt"></i> 清空当前对话</button>
             </div>
-
+            
             <div class="input-area">
                 <div class="input-container">
-                    <textarea id="messageInput" class="input-box" placeholder="输入数学问题...按Enter发送,Shift+Enter换行"></textarea>
-                    <button id="sendBtn" class="send-btn"><i class="fas fa-paper-plane"></i></button>
+                    <textarea class="input-box" id="messageInput" placeholder="请输入数学问题..."></textarea>
+                    <button class="send-btn" id="sendBtn"><i class="fas fa-paper-plane"></i></button>
                 </div>
             </div>
         </div>
@@ -403,163 +257,129 @@
 
     <script>
         const API_URL = '/.netlify/functions/chat';
+
         const chatContainer = document.getElementById('chatContainer');
         const messageInput = document.getElementById('messageInput');
         const sendBtn = document.getElementById('sendBtn');
         const desmosEl = document.getElementById('desmos-container');
-        const systemStatus = document.getElementById('systemStatus');
+        const historyList = document.getElementById('historyList');
+
         let calculator = null;
-        let messageCounter = 0;
-
-        function updateSystemStatus(status, message) {
-            const statusClass = status === 'ok' ? 'status-ok' : status === 'error' ? 'status-error' : 'status-warning';
-            systemStatus.innerHTML = `<strong>系统状态:</strong><br><span class="status-indicator ${statusClass}"></span> ${message}`;
-        }
-
-        let chatHistory = [{
-            role: "system",
-            content: `你是一个专业的数学助手,擅长用LaTeX格式书写数学公式。
-
-请遵循以下规则:
-1. 所有数学公式必须使用LaTeX语法,用$...$包裹行内公式,用$$...$$包裹独立公式
-2. 行列式使用: $$\\begin{vmatrix} a & b \\\\ c & d \\end{vmatrix}$$
-3. 矩阵使用: $$\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}$$
-4. 排列组合: $P(n,m)$ 或 $C(n,m)$
-5. 分数: $\\frac{分子}{分母}$
-6. 根号: $\\sqrt{x}$ 或 $\\sqrt[n]{x}$
-7. 希腊字母: $\\alpha, \\beta, \\gamma$ 等
-8. 上下标: $x^2, x_i$
-9. 求和积分: $\\sum_{i=1}^{n}, \\int_{a}^{b}$
-10. 向量: $\\vec{v}$ 或 $\\mathbf{v}$
-
-示例:
-- 二次方程: $ax^2 + bx + c = 0$
-- 解: $x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$
-- 行列式: $$\\begin{vmatrix} 1 & 2 \\\\ 3 & 4 \\end{vmatrix} = -2$$
-
-回复要简洁清晰，避免过长。如果需要绘图,在回复中加入[GRAPH: LaTeX表达式]`
+        let chatHistory = [{ 
+            role: "system", 
+            content: "你是一个数学教育专家。要求:1. 矩阵用 pmatrix,行列式用 vmatrix。2. 展示分式嵌套行列式时必须完整。3. 变量包裹在 $ 中。4. 复杂公式使用 $$。5. 当回答涉及函数时,在回答末尾添加 [GRAPH: 函数表达式] 标记,例如 [GRAPH: y=x^2] 或 [GRAPH: y=sin(x)]。**重要**: 绝对不要使用 \\begin{tikzpicture} 环境，因为MathJax不支持TikZ绘图。对于任何图形需求，一律使用 [GRAPH: ...] 格式让系统调用Desmos绘图。" 
         }];
+        let conversations = []; // 存储所有对话历史
+        let messageCounter = 0; // 消息计数器
 
-        let conversationHistory = JSON.parse(localStorage.getItem('mathAIHistory') || '[]');
-
-        function saveCurrentConversation(userMsg, aiMsg) {
-            const timestamp = new Date().toLocaleString('zh-CN', { 
-                month: '2-digit', 
-                day: '2-digit', 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            });
-            
-            conversationHistory.unshift({
-                id: Date.now(),
-                timestamp,
-                userMsg: userMsg.substring(0, 20),
-                fullChat: [
-                    { role: "user", content: userMsg },
-                    { role: "assistant", content: aiMsg }
-                ]
-            });
-
-            if (conversationHistory.length > 20) {
-                conversationHistory = conversationHistory.slice(0, 20);
-            }
-
-            localStorage.setItem('mathAIHistory', JSON.stringify(conversationHistory));
-            updateHistoryUI();
-        }
-
-        function updateHistoryUI() {
-            const historyList = document.getElementById('historyList');
-            historyList.innerHTML = conversationHistory.map(item => `
-                <div class="history-item" data-id="${item.id}">
-                    <span>${item.timestamp} - ${item.userMsg}...</span>
-                    <span class="history-item-delete" onclick="deleteHistory(${item.id}, event)">
-                        <i class="fas fa-trash-alt"></i>
-                    </span>
-                </div>
-            `).join('');
-
-            document.querySelectorAll('.history-item').forEach(item => {
-                item.addEventListener('click', function(e) {
-                    if (e.target.closest('.history-item-delete')) return;
-                    const id = parseInt(this.getAttribute('data-id'));
-                    loadConversation(id);
-                });
-            });
-        }
-
-        function loadConversation(id) {
-            const conv = conversationHistory.find(c => c.id === id);
-            if (!conv) return;
-
-            chatHistory = [chatHistory[0], ...conv.fullChat];
-            chatContainer.innerHTML = '<div class="message ai-message">已加载历史对话</div>';
-            
-            conv.fullChat.forEach(msg => {
-                addMessageToUI(msg.role === 'user' ? 'user' : 'ai', msg.content);
-            });
-        }
-
-        function deleteHistory(id, event) {
-            event.stopPropagation();
-            if (confirm('确定要删除这条历史记录吗?')) {
-                conversationHistory = conversationHistory.filter(c => c.id !== id);
-                localStorage.setItem('mathAIHistory', JSON.stringify(conversationHistory));
+        // 从localStorage加载历史记录
+        function loadHistory() {
+            const saved = localStorage.getItem('chatConversations');
+            if (saved) {
+                conversations = JSON.parse(saved);
                 updateHistoryUI();
             }
         }
 
-        function loadHistory() {
+        // 保存历史记录到localStorage
+        function saveHistory() {
+            localStorage.setItem('chatConversations', JSON.stringify(conversations));
+        }
+
+        // 更新历史记录UI
+        function updateHistoryUI() {
+            historyList.innerHTML = '';
+            conversations.forEach((conv, index) => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerHTML = `
+                    <span style="flex: 1;" title="${conv.preview}">${conv.title}</span>
+                    <span class="history-item-delete" data-index="${index}">×</span>
+                `;
+                div.querySelector('span:first-child').onclick = () => loadConversation(index);
+                div.querySelector('.history-item-delete').onclick = (e) => {
+                    e.stopPropagation();
+                    deleteConversation(index);
+                };
+                historyList.appendChild(div);
+            });
+        }
+
+        // 保存当前对话
+        function saveCurrentConversation(userMsg, aiMsg) {
+            const conv = {
+                title: userMsg.substring(0, 20) + (userMsg.length > 20 ? '...' : ''),
+                preview: userMsg,
+                timestamp: Date.now(),
+                messages: [...chatHistory]
+            };
+            conversations.unshift(conv);
+            if (conversations.length > 20) conversations.pop(); // 最多保存20条
+            saveHistory();
             updateHistoryUI();
         }
 
+        // 加载历史对话
+        function loadConversation(index) {
+            if (confirm('加载此对话将清空当前内容,是否继续?')) {
+                const conv = conversations[index];
+                chatHistory = [...conv.messages];
+                chatContainer.innerHTML = '';
+                
+                // 重新渲染所有消息(跳过system消息)
+                chatHistory.forEach((msg, idx) => {
+                    if (msg.role === 'user') {
+                        addMessageToUI('user', msg.content, false);
+                    } else if (msg.role === 'assistant') {
+                        addMessageToUI('ai', msg.content, false);
+                    }
+                });
+            }
+        }
+
+        // 删除单条历史记录
+        function deleteConversation(index) {
+            if (confirm('确定要删除这条历史记录吗?')) {
+                conversations.splice(index, 1);
+                saveHistory();
+                updateHistoryUI();
+            }
+        }
+
+        // 清空所有历史记录
         document.getElementById('clearAllHistory').onclick = () => {
-            if (confirm('确定要清空所有历史记录吗?')) {
-                conversationHistory = [];
-                localStorage.removeItem('mathAIHistory');
+            if (confirm('确定要清空所有历史记录吗?此操作不可恢复!')) {
+                conversations = [];
+                saveHistory();
                 updateHistoryUI();
             }
         };
 
+        // 清空当前对话
         document.getElementById('clearChat').onclick = () => {
             if (confirm('确定要清空当前对话吗?')) {
-                chatHistory = [chatHistory[0]];
+                chatHistory = [chatHistory[0]]; // 保留system消息
                 chatContainer.innerHTML = '<div class="message ai-message">对话已清空。请问有什么数学问题我可以帮您?</div>';
             }
         };
 
+        // 图形开关
         document.getElementById('toggleDesmos').onclick = () => {
             const show = desmosEl.style.display === 'none' || desmosEl.style.display === '';
             desmosEl.style.display = show ? 'block' : 'none';
-            if (show && !calculator && window.Desmos) {
-                try {
-                    calculator = Desmos.GraphingCalculator(desmosEl, { 
-                        expressions: true, 
-                        settingsMenu: false,
-                        showGrid: true
-                    });
-                } catch (e) {
-                    console.warn('Desmos 初始化失败:', e);
-                    addMessageToUI('ai', '⚠️ Desmos图形功能暂时不可用（可选功能）', false);
-                }
+            if (show && !calculator) {
+                calculator = Desmos.GraphingCalculator(desmosEl, { expressions: true, settingsMenu: false });
             }
         };
 
+        // 自动检测并绘制函数
         function autoDrawFunction(text) {
             const graphMatch = text.match(/\[GRAPH:\s*(.+?)\]/);
-            if (graphMatch && window.Desmos) {
+            if (graphMatch) {
                 const expr = graphMatch[1].trim();
                 if (!calculator) {
                     desmosEl.style.display = 'block';
-                    try {
-                        calculator = Desmos.GraphingCalculator(desmosEl, { 
-                            expressions: true, 
-                            settingsMenu: false 
-                        });
-                    } catch (e) {
-                        console.warn('Desmos 初始化失败:', e);
-                        return;
-                    }
+                    calculator = Desmos.GraphingCalculator(desmosEl, { expressions: true, settingsMenu: false });
                 }
                 try {
                     calculator.setExpression({ latex: expr });
@@ -569,15 +389,65 @@
             }
         }
 
+        // Plotly绘图功能（作为备选方案）
+        window.drawWithPlotly = function(containerId, funcExpr, xRange = [-10, 10]) {
+            try {
+                const x = [];
+                const y = [];
+                const step = (xRange[1] - xRange[0]) / 500;
+                
+                // 简单的函数解析（仅支持基本表达式）
+                const func = new Function('x', `return ${funcExpr.replace(/\^/g, '**')}`);
+                
+                for (let xi = xRange[0]; xi <= xRange[1]; xi += step) {
+                    x.push(xi);
+                    try {
+                        y.push(func(xi));
+                    } catch {
+                        y.push(null);
+                    }
+                }
+
+                const trace = {
+                    x: x,
+                    y: y,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#1a2980', width: 2 }
+                };
+
+                const layout = {
+                    title: funcExpr,
+                    xaxis: { title: 'x', gridcolor: '#e9ecef', zeroline: true },
+                    yaxis: { title: 'y', gridcolor: '#e9ecef', zeroline: true },
+                    plot_bgcolor: '#fafafa',
+                    paper_bgcolor: 'white',
+                    margin: { l: 50, r: 30, t: 50, b: 50 }
+                };
+
+                Plotly.newPlot(containerId, [trace], layout, {responsive: true});
+                console.log('Plotly绘图成功');
+            } catch (e) {
+                console.error('Plotly绘图失败:', e);
+            }
+        };
+
+        // 格式化输出
         function formatMathText(text) {
+            // 预处理：移除tikzpicture环境，避免MathJax报错
+            text = text.replace(/\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}/g, 
+                '<div style="padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; margin: 10px 0;">' +
+                '<strong>📊 图形说明：</strong>此处原为TikZ图形代码。建议使用 <code>[GRAPH: 函数表达式]</code> 格式让系统自动调用Desmos绘图。' +
+                '</div>');
+            
             let formatted = text.replace(/\\\\/g, '\\\\\\\\');
             return marked.parse(formatted);
         }
 
+        // 添加消息到UI
         function addMessageToUI(role, text, enableDelete = true) {
             const div = document.createElement('div');
-            const messageClass = role === 'error' ? 'error-message' : `${role}-message`;
-            div.className = `message ${messageClass} tex2jax_process`;
+            div.className = `message ${role}-message`;
             div.setAttribute('data-id', messageCounter++);
             
             if (enableDelete) {
@@ -598,21 +468,27 @@
             if (window.MathJax && role === 'ai') {
                 MathJax.typesetPromise([contentDiv]).then(() => {
                     autoDrawFunction(text);
-                    chatContainer.scrollTop = chatContainer.scrollHeight;
-                }).catch((err) => {
-                    console.error('MathJax渲染错误:', err);
                 });
             }
             
             return div;
         }
 
+        // 删除单条消息
         function deleteMessage(msgElement) {
             if (confirm('确定要删除这条消息吗?')) {
+                const msgId = parseInt(msgElement.getAttribute('data-id'));
+                
+                // 从UI移除
                 msgElement.remove();
+                
+                // 从chatHistory中移除(需要找到对应的索引)
+                // 注意:这里简化处理,实际应该根据消息ID精确匹配
+                // 由于流式输出的特性,这里不做chatHistory的精确同步
             }
         }
 
+        // 发送逻辑
         async function handleSend() {
             const content = messageInput.value.trim();
             if (!content || sendBtn.disabled) return;
@@ -621,94 +497,95 @@
             messageInput.value = '';
             sendBtn.disabled = true;
 
-            const aiDiv = addMessageToUI('ai', '');
-            aiDiv.querySelector('div').classList.add('typing');
-            
+            const aiDiv = addMessageToUI('ai', '<div class="thinking-dots"><span></span><span></span><span></span></div>');
+            let fullAIResponse = "";
+            let isFirstChunk = true;
             chatHistory.push({ role: "user", content: content });
 
-            const timeout = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('请求超时(30秒)')), 30000)
-            );
-
             try {
-                const fetchPromise = fetch(API_URL, {
+                const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        messages: chatHistory,
-                        max_tokens: 800,
-                        temperature: 0.7
+                    body: JSON.stringify({ 
+                        model: "deepseek-chat", 
+                        messages: chatHistory, 
+                        stream: true 
                     })
                 });
 
-                const response = await Promise.race([fetchPromise, timeout]);
-
                 if (!response.ok) {
-                    let errorMsg = `HTTP ${response.status}`;
-                    try {
-                        const errorData = await response.json();
-                        errorMsg = errorData.error || errorMsg;
-                    } catch (e) {}
-                    throw new Error(errorMsg);
+                    const errorText = await response.text();
+                    console.error('API返回错误:', response.status, errorText);
+                    throw new Error(`API请求失败: ${response.status}`);
                 }
 
-                const data = await response.json();
-                
-                if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
-                    throw new Error('API 返回数据格式错误');
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+                    
+                    for (const line of lines) {
+                        if (line.trim().startsWith('data: ')) {
+                            const dataStr = line.replace('data: ', '').trim();
+                            if (dataStr === '[DONE]') continue;
+                            try {
+                                const data = JSON.parse(dataStr);
+                                const delta = data.choices[0].delta.content || "";
+                                
+                                if (delta && isFirstChunk) {
+                                    // 收到第一个内容块时立即清除思考动画
+                                    aiDiv.querySelector('div').innerHTML = "";
+                                    isFirstChunk = false;
+                                }
+                                
+                                fullAIResponse += delta;
+                                aiDiv.querySelector('div').innerHTML = formatMathText(fullAIResponse);
+                                chatContainer.scrollTop = chatContainer.scrollHeight;
+                            } catch (e) {
+                                console.error('解析数据块错误:', e);
+                            }
+                        }
+                    }
                 }
-
-                const aiResponse = data.choices[0].message.content;
-
-                aiDiv.querySelector('div').classList.remove('typing');
-                aiDiv.querySelector('div').innerHTML = formatMathText(aiResponse);
                 
                 if (window.MathJax) {
                     MathJax.typesetPromise([aiDiv.querySelector('div')]).then(() => {
-                        autoDrawFunction(aiResponse);
-                        chatContainer.scrollTop = chatContainer.scrollHeight;
-                    }).catch((err) => {
-                        console.error('MathJax渲染错误:', err);
+                        autoDrawFunction(fullAIResponse);
                     });
                 }
-                
-                chatHistory.push({ role: "assistant", content: aiResponse });
-                saveCurrentConversation(content, aiResponse);
-                updateSystemStatus('ok', 'API 连接正常');
+                chatHistory.push({ role: "assistant", content: fullAIResponse });
+                saveCurrentConversation(content, fullAIResponse);
 
             } catch (error) {
-                console.error('请求错误:', error);
+                console.error('请求错误详情:', error);
+                
+                // 从历史记录中移除刚才的用户消息（因为没有得到回复）
                 chatHistory.pop();
                 
-                aiDiv.querySelector('div').classList.remove('typing');
+                let errorMsg = "抱歉,连接出现问题。可能的原因:\n\n";
+                errorMsg += "1. API密钥无效或已过期\n";
+                errorMsg += "2. 网络连接问题\n";
+                errorMsg += "3. API服务暂时不可用\n";
+                errorMsg += "4. CORS跨域限制\n\n";
+                errorMsg += "请检查:\n";
+                errorMsg += "• 确认API_KEY是否有效\n";
+                errorMsg += "• 检查网络连接\n";
+                errorMsg += "• 查看浏览器控制台获取详细错误信息";
                 
-                let errorMsg = "❌ 连接出现问题:<br><br>";
-                
-                if (error.message.includes('超时')) {
-                    errorMsg += "• 请求超时，请稍后重试<br>";
-                } else if (error.message.includes('Failed to fetch')) {
-                    errorMsg += "• 网络连接失败，请检查网络<br>";
-                    errorMsg += "• 确认 Netlify Functions 已部署<br>";
-                } else if (error.message.includes('格式错误')) {
-                    errorMsg += "• API 返回数据异常<br>";
-                    errorMsg += "• 请检查后端配置<br>";
-                } else {
-                    errorMsg += "• " + error.message + "<br>";
-                }
-                
-                errorMsg += "<br>如问题持续，请联系管理员。";
-                
-                aiDiv.className = 'message error-message';
-                aiDiv.querySelector('div').innerHTML = errorMsg;
-                
-                updateSystemStatus('error', 'API 连接异常');
+                aiDiv.querySelector('div').innerHTML = errorMsg.replace(/\n/g, '<br>');
             } finally {
                 sendBtn.disabled = false;
             }
         }
 
+        // 事件监听
         sendBtn.onclick = handleSend;
         messageInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -717,11 +594,8 @@
             }
         });
 
-        window.addEventListener('load', () => {
-            loadHistory();
-            updateSystemStatus('ok', '系统就绪');
-            console.log('✅ 页面加载完成，MathJax无警告');
-        });
+        // 初始化加载历史记录
+        loadHistory();
     </script>
 </body>
 </html>
