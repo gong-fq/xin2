@@ -256,7 +256,11 @@
     </div>
 
     <script>
+        // API配置 - 需要在Netlify Functions中配置chat函数，或者直接使用API密钥
         const API_URL = '/.netlify/functions/chat';
+        // 如果要直接使用DeepSeek API，取消下面这行的注释并填入您的API密钥
+        // const DIRECT_API_KEY = 'your-deepseek-api-key-here';
+        // const DIRECT_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 
         const chatContainer = document.getElementById('chatContainer');
         const messageInput = document.getElementById('messageInput');
@@ -271,6 +275,19 @@
         }];
         let conversations = []; // 存储所有对话历史
         let messageCounter = 0; // 消息计数器
+
+        // 检测API配置
+        function checkAPIConfiguration() {
+            console.log('检查API配置...');
+            console.log('API_URL:', API_URL);
+            // 检测是否有直接API密钥配置
+            if (typeof DIRECT_API_KEY !== 'undefined' && DIRECT_API_KEY && DIRECT_API_KEY !== 'your-deepseek-api-key-here') {
+                console.log('✓ 检测到直接API密钥配置');
+                return true;
+            }
+            console.log('⚠ 使用Netlify Functions，请确保已部署chat函数');
+            return false;
+        }
 
         // 从localStorage加载历史记录
         function loadHistory() {
@@ -502,12 +519,45 @@
             let isFirstChunk = true;
             chatHistory.push({ role: "user", content: content });
 
+            // 设置超时
+            const timeoutId = setTimeout(() => {
+                if (isFirstChunk) {
+                    console.error('请求超时');
+                    aiDiv.querySelector('div').innerHTML = `
+                        <div style="color: #dc3545;">
+                            <strong>⏱️ 请求超时</strong><br><br>
+                            可能的原因:<br>
+                            1. Netlify Functions未配置或未部署<br>
+                            2. API密钥无效或配额用尽<br>
+                            3. 网络连接问题<br><br>
+                            <strong>解决方案:</strong><br>
+                            • 检查浏览器控制台(F12)查看详细错误<br>
+                            • 确认已正确配置Netlify Functions<br>
+                            • 或在代码中配置DIRECT_API_KEY直接调用API
+                        </div>
+                    `;
+                    sendBtn.disabled = false;
+                    chatHistory.pop(); // 移除未回复的用户消息
+                }
+            }, 30000); // 30秒超时
+
             try {
-                const response = await fetch(API_URL, {
+                // 决定使用哪个API端点
+                let apiUrl = API_URL;
+                let headers = { 'Content-Type': 'application/json' };
+                
+                // 如果配置了直接API密钥，使用直接调用
+                if (typeof DIRECT_API_KEY !== 'undefined' && DIRECT_API_KEY && DIRECT_API_KEY !== 'your-deepseek-api-key-here') {
+                    apiUrl = typeof DIRECT_API_URL !== 'undefined' ? DIRECT_API_URL : 'https://api.deepseek.com/v1/chat/completions';
+                    headers['Authorization'] = `Bearer ${DIRECT_API_KEY}`;
+                    console.log('使用直接API调用');
+                } else {
+                    console.log('使用Netlify Functions');
+                }
+
+                const response = await fetch(apiUrl, {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json'
-                    },
+                    headers: headers,
                     body: JSON.stringify({ 
                         model: "deepseek-chat", 
                         messages: chatHistory, 
@@ -515,10 +565,12 @@
                     })
                 });
 
+                clearTimeout(timeoutId); // 清除超时定时器
+
                 if (!response.ok) {
                     const errorText = await response.text();
                     console.error('API返回错误:', response.status, errorText);
-                    throw new Error(`API请求失败: ${response.status}`);
+                    throw new Error(`API请求失败 (${response.status}): ${errorText}`);
                 }
 
                 const reader = response.body.getReader();
@@ -549,7 +601,7 @@
                                 aiDiv.querySelector('div').innerHTML = formatMathText(fullAIResponse);
                                 chatContainer.scrollTop = chatContainer.scrollHeight;
                             } catch (e) {
-                                console.error('解析数据块错误:', e);
+                                console.error('解析数据块错误:', e, '原始数据:', dataStr);
                             }
                         }
                     }
@@ -564,22 +616,28 @@
                 saveCurrentConversation(content, fullAIResponse);
 
             } catch (error) {
+                clearTimeout(timeoutId); // 确保清除超时定时器
                 console.error('请求错误详情:', error);
                 
                 // 从历史记录中移除刚才的用户消息（因为没有得到回复）
                 chatHistory.pop();
                 
-                let errorMsg = "抱歉,连接出现问题。可能的原因:\n\n";
-                errorMsg += "1. API密钥无效或已过期\n";
-                errorMsg += "2. 网络连接问题\n";
-                errorMsg += "3. API服务暂时不可用\n";
-                errorMsg += "4. CORS跨域限制\n\n";
-                errorMsg += "请检查:\n";
-                errorMsg += "• 确认API_KEY是否有效\n";
-                errorMsg += "• 检查网络连接\n";
-                errorMsg += "• 查看浏览器控制台获取详细错误信息";
+                let errorMsg = `<div style="color: #dc3545;">
+                    <strong>❌ 连接失败</strong><br><br>
+                    <strong>错误信息:</strong> ${error.message}<br><br>
+                    <strong>可能的原因:</strong><br>
+                    1. <strong>Netlify Functions未配置</strong> - 需要创建 /netlify/functions/chat.js 文件<br>
+                    2. <strong>API密钥问题</strong> - DeepSeek API密钥无效或配额用尽<br>
+                    3. <strong>CORS跨域限制</strong> - 浏览器阻止了跨域请求<br>
+                    4. <strong>网络连接问题</strong><br><br>
+                    <strong>快速解决方案:</strong><br>
+                    • 打开浏览器控制台(按F12)查看详细错误<br>
+                    • 检查Network标签页看请求状态<br>
+                    • 确认Netlify Functions已正确部署<br>
+                    • 或联系管理员配置API访问
+                </div>`;
                 
-                aiDiv.querySelector('div').innerHTML = errorMsg.replace(/\n/g, '<br>');
+                aiDiv.querySelector('div').innerHTML = errorMsg;
             } finally {
                 sendBtn.disabled = false;
             }
@@ -596,6 +654,18 @@
 
         // 初始化加载历史记录
         loadHistory();
+        
+        // 检查API配置
+        checkAPIConfiguration();
+        
+        // 页面加载完成提示
+        console.log('='.repeat(50));
+        console.log('数学核心素养AI - 已加载');
+        console.log('MathJax: ✓');
+        console.log('Plotly: ✓');
+        console.log('Desmos: ✓');
+        console.log('tikzpicture环境: 已配置为忽略');
+        console.log('='.repeat(50));
     </script>
 </body>
 </html>
